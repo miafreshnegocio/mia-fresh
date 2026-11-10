@@ -1334,268 +1334,234 @@ const DEVICE=localStorage.getItem('mia_device')||(()=>{const d='EQ-'+Math.random
 let dbx=null,listo=false,ocupado=false,lastPushed={},tPush=null,tPull=null,syncBtn=null;
 
 function crearBotonSync(){
-  if(syncBtn)return;
-  syncBtn=document.createElement('button');
-  syncBtn.id='cloudStatus';
-  syncBtn.textContent='☁️ Nube activa';
-  syncBtn.style.cssText='position:fixed;bottom:60px;right:12px;z-index:9999;color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;font-weight:bold;background:#2E7D32;box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:pointer;font-family:Segoe UI,sans-serif;border:none';
-  syncBtn.title='Clic para forzar sincronización';
-  syncBtn.onclick=function(){if(listo&&!ocupado){badge('☁️ Sincronizando…','#F57C00');pull(true).then(()=>badge('☁️ Nube activa','#2E7D32'));}};
-  document.body.appendChild(syncBtn);
+if(syncBtn)return;
+syncBtn=document.createElement('button');
+syncBtn.id='cloudStatus';
+syncBtn.textContent='☁️ Conectando…';
+syncBtn.style.cssText='position:fixed;bottom:60px;right:12px;z-index:9999;color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;font-weight:bold;background:#607D8B;box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:pointer;font-family:Segoe UI,sans-serif;border:none';
+syncBtn.title='Clic para forzar sincronización';
+syncBtn.onclick=function(){if(listo&&!ocupado){badge('☁️ Sincronizando…','#F57C00');push().then(()=>badge('☁️ Nube activa','#2E7D32'));}};
+document.body.appendChild(syncBtn);
 }
 function badge(txt,color){crearBotonSync();syncBtn.textContent=txt;syncBtn.style.background=color;}
 
 function idDe(r,col){if(col==='customers')return r.cedula;return r.id!==undefined?r.id:r.key;}
 function locales(col){switch(col){case 'products':return products;case 'sales':return sales;case 'settings':return[Object.assign({key:'main'},settings)];case 'expenses':return expenses;case 'cajaRecords':return cajaRecords.concat(currentCaja?[Object.assign({id:'current'},currentCaja)]:[]);case 'investments':return investments;case 'donations':return donations;case 'capital':return[Object.assign({key:'main'},capital)];case 'customers':return customers;case 'coupons':return coupons;case 'movimientos':return movimientos;case 'prestamos':return prestamos;case 'proveedores':return proveedores;case 'presupuestos':return presupuestos;case 'auditLog':return auditLog;}return[];}
-
 function limpiar(r){const c=Object.assign({},r);delete c._upd;return c;}
 
 function aplicar(col,rec){
-  const c=limpiar(rec);
-  if(col==='settings'){delete c.key;Object.assign(settings,c);return;}
-  if(col==='capital'){delete c.key;Object.assign(capital,c);return;}
-  if(col==='cajaRecords'){
-    if(String(c.id)==='current'){
-      if(currentCaja===null)return;
-      delete c.id;currentCaja=c;
-    }else{const i=cajaRecords.findIndex(x=>String(x.id)===String(c.id));if(i>=0)cajaRecords[i]=c;else cajaRecords.push(c);}
-    return;
-  }
-  const arr=({products:products,sales:sales,expenses:expenses,investments:investments,donations:donations,customers:customers,coupons:coupons,movimientos:movimientos,prestamos:prestamos,proveedores:proveedores,presupuestos:presupuestos,auditLog:auditLog})[col];
-  if(!arr)return;
-  const i=arr.findIndex(x=>String(idDe(x,col))===String(idDe(c,col)));
-  if(i>=0)arr[i]=c;else arr.push(c);
+const c=limpiar(rec);
+if(col==='settings'){delete c.key;Object.assign(settings,c);return;}
+if(col==='capital'){delete c.key;Object.assign(capital,c);return;}
+if(col==='cajaRecords'){
+if(String(c.id)==='current'){
+if(currentCaja===null)return;
+delete c.id;currentCaja=c;
+}else{const i=cajaRecords.findIndex(x=>String(x.id)===String(c.id));if(i>=0)cajaRecords[i]=c;else cajaRecords.push(c);}
+return;
+}
+const arr=({products:products,sales:sales,expenses:expenses,investments:investments,donations:donations,customers:customers,coupons:coupons,movimientos:movimientos,prestamos:prestamos,proveedores:proveedores,presupuestos:presupuestos,auditLog:auditLog})[col];
+if(!arr)return;
+const i=arr.findIndex(x=>String(idDe(x,col))===String(idDe(c,col)));
+if(i>=0)arr[i]=c;else arr.push(c);
 }
 
 function borrarLocal(col,id){
-  id=String(id);
-  if(col==='customers'){customers=customers.filter(x=>String(x.cedula)!==id);return;}
-  if(col==='cajaRecords'){cajaRecords=cajaRecords.filter(x=>String(x.id)!==id);if(currentCaja&&String('current')===id)currentCaja=null;return;}
-  switch(col){
-    case 'products':products=products.filter(x=>String(x.id)!==id);break;
-    case 'sales':sales=sales.filter(x=>String(x.id)!==id);break;
-    case 'expenses':expenses=expenses.filter(x=>String(x.id)!==id);break;
-    case 'investments':investments=investments.filter(x=>String(x.id)!==id);break;
-    case 'donations':donations=donations.filter(x=>String(x.id)!==id);break;
-    case 'coupons':coupons=coupons.filter(x=>String(x.id)!==id);break;
-    case 'movimientos':movimientos=movimientos.filter(x=>String(x.id)!==id);break;
-    case 'prestamos':prestamos=prestamos.filter(x=>String(x.id)!==id);break;
-    case 'proveedores':proveedores=proveedores.filter(x=>String(x.id)!==id);break;
-    case 'presupuestos':presupuestos=presupuestos.filter(x=>String(x.id)!==id);break;
-    case 'auditLog':auditLog=auditLog.filter(x=>String(x.id)!==id);break;
-  }
+id=String(id);
+if(col==='customers'){customers=customers.filter(x=>String(x.cedula)!==id);return;}
+if(col==='cajaRecords'){cajaRecords=cajaRecords.filter(x=>String(x.id)!==id);if(currentCaja&&String('current')===id)currentCaja=null;return;}
+switch(col){
+case 'products':products=products.filter(x=>String(x.id)!==id);break;
+case 'sales':sales=sales.filter(x=>String(x.id)!==id);break;
+case 'expenses':expenses=expenses.filter(x=>String(x.id)!==id);break;
+case 'investments':investments=investments.filter(x=>String(x.id)!==id);break;
+case 'donations':donations=donations.filter(x=>String(x.id)!==id);break;
+case 'coupons':coupons=coupons.filter(x=>String(x.id)!==id);break;
+case 'movimientos':movimientos=movimientos.filter(x=>String(x.id)!==id);break;
+case 'prestamos':prestamos=prestamos.filter(x=>String(x.id)!==id);break;
+case 'proveedores':proveedores=proveedores.filter(x=>String(x.id)!==id);break;
+case 'presupuestos':presupuestos=presupuestos.filter(x=>String(x.id)!==id);break;
+case 'auditLog':auditLog=auditLog.filter(x=>String(x.id)!==id);break;
+}
 }
 
 function repintar(){try{renderAll();renderCaja();renderExpenses();renderCoupons();renderProveedores();}catch(e){}}
 
 async function push(){
-  if(!listo||ocupado)return;
-  ocupado=true;
-  badge('☁️ Sincronizando…','#F57C00');
-  try{
-    const ahora=Date.now();
-    let lot=dbx.batch(),ops=0;
-    const flush=async function(){if(ops>0){await lot.commit();lot=dbx.batch();ops=0;}};
-    for(const col of COLES){
-      const regs=locales(col);
-      const vistos={};
-      for(const r of regs){
-        const id=idDe(r,col);
-        if(id===undefined||id===null)continue;
-        vistos[String(id)]=1;
-        const json=JSON.stringify(r);
-        if(lastPushed[col]&&lastPushed[col][String(id)]===json)continue;
-        lot.set(dbx.collection(col).doc(String(id)),Object.assign({},r,{_upd:ahora,_device:DEVICE}));
-        ops++;
-        (lastPushed[col]=lastPushed[col]||{})[String(id)]=json;
-        if(ops>=400)await flush();
-      }
-      if(lastPushed[col]){
-        for(const pid of Object.keys(lastPushed[col])){
-          if(!vistos[pid]){
-            lot.delete(dbx.collection(col).doc(pid));
-            lot.set(dbx.collection('borrados').doc(col+'__'+pid),{col:col,id:pid,_del:ahora,_device:DEVICE});
-            ops++;
-            delete lastPushed[col][pid];
-            if(ops>=400)await flush();
-          }
-        }
-      }
-    }
-    await flush();
-    await dbx.collection('meta').doc('sync').set({ultimo:ahora,device:DEVICE},{merge:true});
-    badge('☁️ Nube activa','#2E7D32');
-  }catch(e){console.warn('Push falló:',e);badge('☁️ Sin conexión','#B71C1C');}
-  ocupado=false;
+if(!listo||ocupado)return;
+ocupado=true;
+badge('☁️ Sincronizando…','#F57C00');
+try{
+const ahora=Date.now();
+let lot=dbx.batch(),ops=0;
+const flush=async function(){if(ops>0){await lot.commit();lot=dbx.batch();ops=0;}};
+for(const col of COLES){
+const regs=locales(col);
+const vistos={};
+for(const r of regs){
+const id=idDe(r,col);
+if(id===undefined||id===null)continue;
+vistos[String(id)]=1;
+const json=JSON.stringify(r);
+if(lastPushed[col]&&lastPushed[col][String(id)]===json)continue;
+lot.set(dbx.collection(col).doc(String(id)),Object.assign({},r,{_upd:ahora,_device:DEVICE}));
+ops++;
+(lastPushed[col]=lastPushed[col]||{})[String(id)]=json;
+if(ops>=400)await flush();
+}
+if(lastPushed[col]){
+for(const pid of Object.keys(lastPushed[col])){
+if(!vistos[pid]){
+lot.delete(dbx.collection(col).doc(pid));
+lot.set(dbx.collection('borrados').doc(col+'__'+pid),{col:col,id:pid,_del:ahora,_device:DEVICE});
+ops++;
+delete lastPushed[col][pid];
+if(ops>=400)await flush();
+}
+}
+}
+}
+await flush();
+await dbx.collection('meta').doc('sync').set({ultimo:ahora,device:DEVICE},{merge:true});
+badge('☁️ Nube activa','#2E7D32');
+}catch(e){console.warn('Push falló:',e);badge('☁️ Sin conexión','#B71C1C');}
+ocupado=false;
 }
 
 function programPush(){if(!listo)return;clearTimeout(tPush);tPush=setTimeout(push,2000);}
 
 async function pull(completo){
-  ocupado=true;
-  if(window._forceSync){localStorage.setItem('mia_last_sync','0');window._forceSync=false;}
-  badge('☁️ Descargando…','#F57C00');
-  try{
-    const ult=parseInt(localStorage.getItem('mia_last_sync')||'0',10);
-    let cambios=0;
-    for(const col of COLES){
-      const snap=await dbx.collection(col).get();
-      const idsEnNube=new Set();
-      snap.forEach(function(doc){
-        const r=doc.data();
-        idsEnNube.add(doc.id);
-        lastPushed[col]=lastPushed[col]||{};
-        lastPushed[col][doc.id]=JSON.stringify(limpiar(r));
-        if(completo||(r._upd||0)>ult){
-          aplicar(col,r);
-          cambios++;
-        }
-      });
-      if(!completo){
-        const locales_ids=locales(col).map(x=>String(idDe(x,col))).filter(x=>x);
-        for(const lid of locales_ids){
-          if(!idsEnNube.has(lid)){
-            borrarLocal(col,lid);
-            cambios++;
-          }
-        }
-      }
-    }
-    if(!completo){
-      const sb=await dbx.collection('borrados').get();
-      sb.forEach(function(d){
-        const t=d.data();
-        if((t._del||0)>ult){
-          borrarLocal(t.col,t.id);
-          cambios++;
-        }
-      });
-    }
-    localStorage.setItem('mia_last_sync',String(Date.now()));
-    if(cambios>0){await saveData();repintar();}
-    badge('☁️ Nube activa','#2E7D32');
-  }catch(e){console.warn('Pull falló:',e);badge('☁️ Sin conexión','#B71C1C');}
-  ocupado=false;
+ocupado=true;
+if(window._forceSync){localStorage.setItem('mia_last_sync','0');window._forceSync=false;}
+badge('☁️ Descargando…','#F57C00');
+try{
+const ult=parseInt(localStorage.getItem('mia_last_sync')||'0',10);
+let cambios=0;
+for(const col of COLES){
+const snap=await dbx.collection(col).get();
+const idsEnNube=new Set();
+snap.forEach(function(doc){
+const r=doc.data();
+idsEnNube.add(doc.id);
+lastPushed[col]=lastPushed[col]||{};
+lastPushed[col][doc.id]=JSON.stringify(limpiar(r));
+if(completo||(r._upd||0)>ult){
+aplicar(col,r);
+cambios++;
+}
+});
+// ✅ CORRECCIÓN: NO borrar datos locales si la nube está vacía
+if(!completo && idsEnNube.size > 0){
+const locales_ids=locales(col).map(x=>String(idDe(x,col))).filter(x=>x);
+for(const lid of locales_ids){
+if(!idsEnNube.has(lid)){
+borrarLocal(col,lid);
+cambios++;
+}
+}
+}
+}
+if(!completo){
+const sb=await dbx.collection('borrados').get();
+sb.forEach(function(d){
+const t=d.data();
+if((t._del||0)>ult){
+borrarLocal(t.col,t.id);
+cambios++;
+}
+});
+}
+localStorage.setItem('mia_last_sync',String(Date.now()));
+if(cambios>0){await saveData();repintar();}
+badge('☁️ Nube activa','#2E7D32');
+}catch(e){console.warn('Pull falló:',e);badge('☁️ Sin conexión','#B71C1C');}
+ocupado=false;
 }
 
 async function cloudInit(){
-  badge('☁️ Conectando…','#607D8B');
-  console.log('🔥 Iniciando Firebase...');
-  try{
-    firebase.initializeApp(firebaseConfig);
-    dbx=firebase.firestore();
-    await firebase.auth().signInAnonymously();
-    listo=true;
-    console.log('✅ Autenticación exitosa');
-  // Verificar si hay caja abierta localmente
-const cajaLocalAbierta=await dbGet('cajaRecords','current');
-const vacio=(products.length===0&&sales.length===0&&expenses.length===0&&movimientos.length===0);
+badge('☁️ Conectando…','#607D8B');
+console.log('🔥 Iniciando Firebase...');
+try{
+firebase.initializeApp(firebaseConfig);
+dbx=firebase.firestore();
+await firebase.auth().signInAnonymously();
+listo=true;
+console.log('✅ Autenticación exitosa');
 
-if(vacio && !cajaLocalAbierta){
-  console.log('📥 Descargando todo de la nube...');
-  await pull(true);
-  await saveData();
-  repintar();
-}else{
-  console.log('🔄 Cargando datos locales primero...');
-  // Cargar desde IndexedDB local primero
-  const p=await dbGetAll('products');if(p&&p.length)products=p;
-  const s=await dbGetAll('sales');if(s)sales=s;
-  const sd=await dbGet('settings','main');
-  if(sd){const{key,...r}=sd;settings={...settings,...r};}
-  const cd=await dbGet('capital','main');
-  if(cd){const{key,...r}=cd;capital={...capital,...r};}
-  const exp=await dbGetAll('expenses');if(exp)expenses=exp;
-  const inv=await dbGetAll('investments');if(inv)investments=inv;
-  const don=await dbGetAll('donations');if(don)donations=don;
-  const cus=await dbGetAll('customers');if(cus)customers=cus;
-  const cou=await dbGetAll('coupons');if(cou)coupons=cou;
-  const mov=await dbGetAll('movimientos');if(mov)movimientos=mov;
-  const pre=await dbGetAll('prestamos');if(pre)prestamos=pre;
-  const pro=await dbGetAll('proveedores');if(pro)proveedores=pro;
-  const aud=await dbGetAll('auditLog');if(aud)auditLog=aud;
-  const prs=await dbGetAll('presupuestos');if(prs)presupuestos=prs;
-  
-  // Restaurar caja local si existe
-  if(cajaLocalAbierta){
-    currentCaja=(({id,...r})=>r)(cajaLocalAbierta);
-    console.log('✅ Caja local restaurada:',currentCaja);
-  }else{
-    currentCaja=null;
-  }
-  
-  repintar();
-  console.log(' Sincronizando con la nube en segundo plano...');
-  programPush();
-}
-    dbx.collection('meta').doc('sync').onSnapshot(function(s){
-      const d=s.data();
-      if(!d||d.device===DEVICE)return;
-      console.log('📡 Cambio detectado desde otro dispositivo');
-      clearTimeout(tPull);
-      tPull=setTimeout(async function(){await pull(false);repintar();},1500);
-    });
-  }catch(e){console.error('❌ Error Firebase:',e);badge('☁️ Sin nube','#B71C1C');}
+// ✅ CORRECCIÓN: Solo hacer push, NO pull
+// Los datos locales ya fueron cargados por init()
+console.log('📤 Subiendo datos locales a la nube...');
+await push();
+programPush();
+
+dbx.collection('meta').doc('sync').onSnapshot(function(s){
+const d=s.data();
+if(!d||d.device===DEVICE)return;
+console.log('📡 Cambio detectado desde otro dispositivo');
+clearTimeout(tPull);
+tPull=setTimeout(async function(){await pull(false);repintar();},1500);
+});
+}catch(e){console.error('❌ Error Firebase:',e);badge('☁️ Sin nube','#B71C1C');}
 }
 
 function esperarSistema(){
-  const t=setInterval(function(){
-    const cd=document.getElementById('currentDate');
-    if(cd&&cd.textContent!==''){clearInterval(t);cloudInit();}
-  },500);
-  setTimeout(function(){clearInterval(t);if(!listo)cloudInit();},8000);
+const t=setInterval(function(){
+const cd=document.getElementById('currentDate');
+if(cd&&cd.textContent!==''){clearInterval(t);cloudInit();}
+},500);
+setTimeout(function(){clearInterval(t);if(!listo)cloudInit();},8000);
 }
 
 const _origSave=window.saveData;
 window.saveData=async function(){
-  const r=await _origSave.apply(this,arguments);
-  if(listo&&!ocupado)programPush();
-  return r;
+const r=await _origSave.apply(this,arguments);
+if(listo&&!ocupado)programPush();
+return r;
 };
 
-window.addEventListener('online',function(){console.log('🌐 Conexión restaurada');if(listo)pull(true).then(()=>programPush());});
+window.addEventListener('online',function(){console.log('🌐 Conexión restaurada');if(listo)push();});
+
 if(document.readyState==='complete')esperarSistema();else window.addEventListener('load',esperarSistema);
+
 // Detectar cuando la pestaña vuelve de reposo
 document.addEventListener('visibilitychange',function(){
-  if(!document.hidden){
-    console.log('👁️ Pestaña activa de nuevo - recargando datos locales');
-    // Forzar recarga desde IndexedDB local
-    (async function(){
-      try{
-        const p=await dbGetAll('products');if(p&&p.length)products=p;
-        const s=await dbGetAll('sales');if(s)sales=s;
-        const sd=await dbGet('settings','main');
-        if(sd){const{key,...r}=sd;settings={...settings,...r};}
-        const cd=await dbGet('capital','main');
-        if(cd){const{key,...r}=cd;capital={...capital,...r};}
-        const cc=await dbGet('cajaRecords','current');
-        if(cc)currentCaja=(({id,...r})=>r)(cc);else currentCaja=null;
-        const exp=await dbGetAll('expenses');if(exp)expenses=exp;
-        const inv=await dbGetAll('investments');if(inv)investments=inv;
-        const don=await dbGetAll('donations');if(don)donations=don;
-        const cus=await dbGetAll('customers');if(cus)customers=cus;
-        const cou=await dbGetAll('coupons');if(cou)coupons=cou;
-        const mov=await dbGetAll('movimientos');if(mov)movimientos=mov;
-        const pre=await dbGetAll('prestamos');if(pre)prestamos=pre;
-        const pro=await dbGetAll('proveedores');if(pro)proveedores=pre;
-        const aud=await dbGetAll('auditLog');if(aud)auditLog=aud;
-        const prs=await dbGetAll('presupuestos');if(prs)presupuestos=prs;
-        renderAll();
-        renderCaja();
-        renderProveedores();
-        badge('☁️ Datos recargados','#2E7D32');
-      }catch(e){console.error('Error al recargar:',e);}
-    })();
-  }
+if(!document.hidden){
+console.log('👁️ Pestaña activa de nuevo - recargando datos locales');
+(async function(){
+try{
+const p=await dbGetAll('products');if(p&&p.length)products=p;
+const s=await dbGetAll('sales');if(s)sales=s;
+const sd=await dbGet('settings','main');
+if(sd){const{key,...r}=sd;settings={...settings,...r};}
+const cd=await dbGet('capital','main');
+if(cd){const{key,...r}=cd;capital={...capital,...r};}
+const cc=await dbGet('cajaRecords','current');
+if(cc)currentCaja=(({id,...r})=>r)(cc);else currentCaja=null;
+const exp=await dbGetAll('expenses');if(exp)expenses=exp;
+const inv=await dbGetAll('investments');if(inv)investments=inv;
+const don=await dbGetAll('donations');if(don)donations=don;
+const cus=await dbGetAll('customers');if(cus)customers=cus;
+const cou=await dbGetAll('coupons');if(cou)coupons=cou;
+const mov=await dbGetAll('movimientos');if(mov)movimientos=mov;
+const pre=await dbGetAll('prestamos');if(pre)prestamos=pre;
+const pro=await dbGetAll('proveedores');if(pro)proveedores=pro;
+const aud=await dbGetAll('auditLog');if(aud)auditLog=aud;
+const prs=await dbGetAll('presupuestos');if(prs)presupuestos=prs;
+renderAll();
+renderCaja();
+renderProveedores();
+badge('☁️ Datos recargados','#2E7D32');
+}catch(e){console.error('Error al recargar:',e);}
+})();
+}
 });
 
-// También recargar cuando la ventana recibe el foco
 window.addEventListener('focus',function(){
-  console.log('🎯 Ventana activa - verificando datos');
-  if(products.length===0){
-    console.log('⚠️ Productos vacíos - recargando');
-    dbGetAll('products').then(p=>{if(p&&p.length){products=p;renderAll();}});
-  }
+console.log('🎯 Ventana activa - verificando datos');
+if(products.length===0){
+console.log('⚠️ Productos vacíos - recargando');
+dbGetAll('products').then(p=>{if(p&&p.length){products=p;renderAll();}});
+}
 });
 })();
 </script>
