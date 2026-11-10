@@ -1,0 +1,18 @@
+{
+  "name": "MIA FRESH - Sistema Contable",
+  "short_name": "MIA FRESH",
+  "description": "Todo limpio, todo fresco - Sistema contable completo",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#007EA7",
+  "theme_color": "#005A8C",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
